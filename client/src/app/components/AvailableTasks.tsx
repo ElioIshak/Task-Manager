@@ -13,8 +13,12 @@ export default function AvailableTasks({ user }: AvailableTasksProps) {
   const [error, setError] = useState('');
 
   useEffect(() => {
+    if (user.role !== 'member') {
+      return;
+    }
+
     loadTasks();
-  }, [user.organizationId]);
+  }, [user.organizationId, user.role]);
 
   const loadTasks = async () => {
     try {
@@ -81,6 +85,16 @@ export default function AvailableTasks({ user }: AvailableTasksProps) {
       <div className="p-8">
         <div className="text-center py-12 text-gray-500">
           Your membership is pending approval from an organization admin.
+        </div>
+      </div>
+    );
+  }
+
+  if (user.role !== 'member') {
+    return (
+      <div className="p-8">
+        <div className="text-center py-12 text-gray-500">
+          Organization admins manage tasks from the Organization Tasks page.
         </div>
       </div>
     );

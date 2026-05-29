@@ -1,7 +1,7 @@
 import bcrypt from "bcrypt";
 
 // random data added to the password before hashimg
-const SALT_ROUNDS = 20;
+const SALT_ROUNDS = 10;
 
 // password hashing
 export const hashPassword = (plainPass: string) => {

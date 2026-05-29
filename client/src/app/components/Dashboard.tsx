@@ -16,7 +16,9 @@ export default function Dashboard({ user, onLogout, children }: DashboardProps) 
     ...(user.organizationId && user.membershipStatus === 'approved'
       ? [
           { path: '/dashboard/organization-tasks', label: 'Organization Tasks', icon: Briefcase },
-          { path: '/dashboard/available-tasks', label: 'Available Tasks', icon: Users },
+          ...(user.role === 'member'
+            ? [{ path: '/dashboard/available-tasks', label: 'Available Tasks', icon: Users }]
+            : []),
           ...(user.role === 'admin'
             ? [{ path: '/dashboard/members', label: 'Members', icon: UsersRound }]
             : []),

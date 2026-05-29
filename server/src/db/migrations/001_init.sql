@@ -5,7 +5,7 @@ CREATE TYPE Task_Priority AS ENUM ('LOW', 'MEDIUM', 'HIGH');
 
 CREATE TABLE "Users" ( 
     id VARCHAR(12) PRIMARY KEY, 
-    name VARCHAR(10) NOT NULL,
+    name VARCHAR(100) NOT NULL,
     email VARCHAR(200) UNIQUE NOT NULL,
     hashed_password VARCHAR(120) NOT NULL,
     role Role NOT NULL,

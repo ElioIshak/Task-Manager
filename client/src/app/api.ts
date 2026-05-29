@@ -1,6 +1,12 @@
 import type { Task, User } from './App';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL ?? '/api';
+function getApiBaseUrl() {
+  const configuredApiUrl = import.meta.env.VITE_API_URL?.trim().replace(/^['"]|['"]$/g, '');
+
+  return (configuredApiUrl || 'http://localhost:3000/api').replace(/\/$/, '');
+}
+
+const base = getApiBaseUrl();
 const TOKEN_KEY = 'authToken';
 
 type ServerRole = 'member' | 'organization';
@@ -97,31 +103,34 @@ function mapTask(task: ServerTask): Task {
   };
 }
 
-async function request<T>(path: string, options: RequestInit = {}) {
-  const token = getStoredToken();
-  const headers = new Headers(options.headers);
+export const api = {
+  async fetch<T>(url: string, options: RequestInit = {}) {
+    const token = getStoredToken();
+    const headers = new Headers(options.headers);
 
-  if (!headers.has('Content-Type') && options.body) {
-    headers.set('Content-Type', 'application/json');
-  }
+    if (!headers.has('Content-Type') && options.body) {
+      headers.set('Content-Type', 'application/json');
+    }
 
-  if (token) {
-    headers.set('Authorization', `Bearer ${token}`);
-  }
+    if (token) {
+      headers.set('Authorization', `Bearer ${token}`);
+    }
 
-  const response = await fetch(`${API_BASE_URL}${path}`, {
-    ...options,
-    headers,
-  });
+    const response = await fetch(url, {
+      ...options,
+      headers,
+    });
 
-  const payload = await response.json().catch(() => null);
+    const payload = await response.json().catch(() => null);
 
-  if (!response.ok) {
-    throw new Error(payload?.message ?? 'Request failed');
-  }
+    if (!response.ok) {
+      throw new Error(payload?.message ?? 'Request failed');
+    }
 
-  return payload as T;
-}
+    return payload as T;
+  },
+};
+
 
 function splitName(name: string) {
   const [firstName, ...rest] = name.trim().split(/\s+/);
@@ -133,7 +142,7 @@ function splitName(name: string) {
 }
 
 export async function login(email: string, password: string) {
-  const response = await request<AuthResponse>('/auth/login', {
+  const response = await api.fetch<AuthResponse>(`${base}/auth/login`, {
     method: 'POST',
     body: JSON.stringify({ email, password }),
   });
@@ -150,7 +159,7 @@ export async function signup(input: {
   organizationId?: string;
 }) {
   const { firstName, lastName } = splitName(input.name);
-  const response = await request<AuthResponse>('/auth/signup', {
+  const response = await api.fetch<AuthResponse>(`${base}/auth/signup`, {
     method: 'POST',
     body: JSON.stringify({
       email: input.email,
@@ -168,34 +177,34 @@ export async function signup(input: {
 }
 
 export async function getCurrentUser() {
-  return mapUser(await request<ServerUser>('/users/me'));
+  return mapUser(await api.fetch<ServerUser>(`${base}/users/me`));
 }
 
 export async function updateProfile(input: { name: string; email: string }) {
-  return mapUser(await request<ServerUser>('/users/me', {
+  return mapUser(await api.fetch<ServerUser>(`${base}/users/me`, {
     method: 'PATCH',
     body: JSON.stringify(input),
   }));
 }
 
 export async function updateOrganization(organizationId: string | null) {
-  return mapUser(await request<ServerUser>('/users/me/organization', {
+  return mapUser(await api.fetch<ServerUser>(`${base}/users/me/organization`, {
     method: 'PATCH',
     body: JSON.stringify({ organizationId }),
   }));
 }
 
 export async function deleteAccount() {
-  await request('/users/me', { method: 'DELETE' });
+  await api.fetch(`${base}/users/me`, { method: 'DELETE' });
   clearStoredToken();
 }
 
 export async function listOrganizations() {
-  return request<OrganizationOption[]>('/users/organizations');
+  return api.fetch<OrganizationOption[]>(`${base}/users/organizations`);
 }
 
 export async function listMyTasks() {
-  return (await request<ServerTask[]>('/tasks')).map(mapTask);
+  return (await api.fetch<ServerTask[]>(`${base}/tasks`)).map(mapTask);
 }
 
 export async function createTask(input: {
@@ -204,7 +213,7 @@ export async function createTask(input: {
   priority: Task['priority'];
   dueDate: string;
 }) {
-  return mapTask(await request<ServerTask>('/tasks', {
+  return mapTask(await api.fetch<ServerTask>(`${base}/tasks`, {
     method: 'POST',
     body: JSON.stringify({
       ...input,
@@ -214,7 +223,7 @@ export async function createTask(input: {
 }
 
 export async function getTask(id: string) {
-  return mapTask(await request<ServerTask>(`/tasks/${id}`));
+  return mapTask(await api.fetch<ServerTask>(`${base}/tasks/${id}`));
 }
 
 export async function updateTask(id: string, input: {
@@ -224,7 +233,7 @@ export async function updateTask(id: string, input: {
   dueDate?: string;
   status?: Task['status'];
 }) {
-  return mapTask(await request<ServerTask>(`/tasks/${id}`, {
+  return mapTask(await api.fetch<ServerTask>(`${base}/tasks/${id}`, {
     method: 'PATCH',
     body: JSON.stringify({
       ...input,
@@ -235,17 +244,17 @@ export async function updateTask(id: string, input: {
 }
 
 export async function deleteTask(id: string) {
-  await request(`/tasks/${id}`, { method: 'DELETE' });
+  await api.fetch(`${base}/tasks/${id}`, { method: 'DELETE' });
 }
 
 export async function completeTask(id: string) {
-  return mapTask(await request<ServerTask>(`/tasks/${id}/complete`, {
+  return mapTask(await api.fetch<ServerTask>(`${base}/tasks/${id}/complete`, {
     method: 'PATCH',
   }));
 }
 
 export async function listOrganizationTasks() {
-  return (await request<ServerTask[]>('/tasks/organization')).map(mapTask);
+  return (await api.fetch<ServerTask[]>(`${base}/tasks/organization`)).map(mapTask);
 }
 
 export async function createOrganizationTask(input: {
@@ -254,7 +263,7 @@ export async function createOrganizationTask(input: {
   priority: Task['priority'];
   dueDate: string;
 }) {
-  return mapTask(await request<ServerTask>('/tasks/organization', {
+  return mapTask(await api.fetch<ServerTask>(`${base}/tasks/organization`, {
     method: 'POST',
     body: JSON.stringify({
       ...input,
@@ -264,11 +273,11 @@ export async function createOrganizationTask(input: {
 }
 
 export async function listAvailableOrganizationTasks() {
-  return (await request<ServerTask[]>('/tasks/organization/available')).map(mapTask);
+  return (await api.fetch<ServerTask[]>(`${base}/tasks/organization/available`)).map(mapTask);
 }
 
 export async function takeOrganizationTask(id: string) {
-  return mapTask(await request<ServerTask>(`/tasks/organization/${id}/take`, {
+  return mapTask(await api.fetch<ServerTask>(`${base}/tasks/organization/${id}/take`, {
     method: 'PATCH',
   }));
 }

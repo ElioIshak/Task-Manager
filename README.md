@@ -1,126 +1,220 @@
-# Task Manager API
+# Task Manager Web App
 
----
+**Author:** Elio Ishak  
+**Project:** Task Manager  
+**Stack:** React, Vite, Node.js, Express, TypeScript, PostgreSQL, Kysely
 
-**Project Name:** Task-Manager-Api  
-**Start Date:** March 2026  
-**Last Updated:** March 2026  
-**Author:** Elio Ishak (CS student at AUB)
+Task Manager is a full-stack web application for creating, assigning, and tracking personal and organization tasks. The frontend is a React/Vite app, the backend is an Express API, and PostgreSQL runs through Docker.
 
----
+## Project Structure
 
-A simple backend REST API built with **Node.js, Express, TypeScript, PostgreSQL (Dockerized), and Kysely**.
+```text
+.
++-- client/                 # React + Vite web app
++-- server/                 # Express + TypeScript API
++-- docker-compose.yml      # PostgreSQL and Adminer services
++-- .env                    # Shared local environment variables
++-- README.md
+```
 
-This project demonstrates JWT authentication, password hashing, protected routes, relational database design, and type-safe SQL querying without using a heavy ORM.
+## Features
 
----
+- User signup and login
+- JWT-based authentication
+- Persistent sessions in the browser
+- Personal task creation, editing, completion, and deletion
+- Organization accounts that can create organization tasks
+- Member accounts that can join organizations
+- Members can take available organization tasks
+- Profile updates and account deletion
+- PostgreSQL-backed data storage
 
 ## Tech Stack
+
+### Frontend
+
+- React
+- Vite
+- TypeScript
+- Tailwind CSS
+- lucide-react icons
+
+### Backend
 
 - Node.js
 - Express
 - TypeScript
-- PostgreSQL (running in Docker)
-- Kysely (type-safe SQL query builder)
-- bcrypt (password hashing)
-- jose (JWT)
+- Kysely
+- PostgreSQL
+- bcrypt
+- jose JWTs
 
----
+### Infrastructure
 
-## Features
+- Docker Compose
+- PostgreSQL 16
+- Adminer
 
-- User signup & login
-- Password hashing with bcrypt
-- JWT-based authentication
-- Protected routes with middleware
-- CRUD operations for tasks
-- Task ownership enforcement
-- Manual SQL migrations
+## Environment Variables
 
----
+Create a `.env` file in the project root:
 
-## Database Schema
+```env
+POSTGRES_DB=task_manager
+POSTGRES_USER=admin
+POSTGRES_PASSWORD=admin12345
+POSTGRES_PORT=5432
+ADMINER_PORT=8080
 
-### Users
-
-```sql
-CREATE TABLE users (
-  id VARCHAR(11) PRIMARY KEY,
-  email VARCHAR(255) NOT NULL UNIQUE,
-  hashed_password VARCHAR(255) NOT NULL,
-  is_valid BOOLEAN DEFAULT TRUE,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
+DATABASE_URL=postgres://admin:admin12345@localhost:5432/task_manager
+JWT_SECRET=SECRET
+PORT=3000
+CLIENT_ORIGIN=http://localhost:5173
 ```
 
-### Tasks
+The backend loads this root `.env` file when it is started from the `server/` directory.
 
-```sql
-CREATE TYPE task_status AS ENUM ('TODO', 'IN_PROGRESS', 'DONE');
+## Setup
 
-CREATE TABLE tasks (
-  id VARCHAR(11) PRIMARY KEY,
-  title VARCHAR(200) NOT NULL,
-  description TEXT,
-  status task_status DEFAULT 'TODO',
-  user_id VARCHAR(11) NOT NULL,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-);
-
-CREATE INDEX idx_tasks_user_id ON tasks(user_id);
-CREATE INDEX idx_tasks_status ON tasks(status);
-```
-
----
-
-## Installation
+Install backend dependencies:
 
 ```bash
+cd server
 npm install
-npm run dev
 ```
 
----
+Install frontend dependencies:
 
-## Running with Docker (PostgreSQL)
+```bash
+cd client
+npm install
+```
 
-Start PostgreSQL and Adminer:
+Start PostgreSQL and Adminer from the project root:
 
 ```bash
 docker compose up -d
 ```
 
-Apply migration:
+Apply the database migration from the project root.
+
+PowerShell:
+
+```powershell
+Get-Content server\src\db\migrations\001_init.sql | docker exec -i taskmanager-postgres psql -U admin -d task_manager
+Get-Content server\src\db\migrations\002_expand_user_name.sql | docker exec -i taskmanager-postgres psql -U admin -d task_manager
+```
+
+Bash:
 
 ```bash
-type src\db\migrations\001_init.sql | docker exec -i taskmanager-postgres psql -U admin -d taskmanager
+docker exec -i taskmanager-postgres psql -U admin -d task_manager < server/src/db/migrations/001_init.sql
+docker exec -i taskmanager-postgres psql -U admin -d task_manager < server/src/db/migrations/002_expand_user_name.sql
 ```
 
----
+## Running Locally
 
-## Environment Variables
+Start the API:
 
-Create a `.env` file:
-
-```
-JWT_SECRET=your_secret_key
-DATABASE_URL=postgresql://admin:your_password@localhost:5432/taskmanager
-PORT=3000
+```bash
+cd server
+npm run dev
 ```
 
----
+The API runs at:
 
-## API Endpoints
+```text
+http://localhost:3000
+```
+
+Start the web app:
+
+```bash
+cd client
+npm run dev
+```
+
+The client runs at:
+
+```text
+http://localhost:5173
+```
+
+The Vite dev server proxies `/api` requests to `http://localhost:3000`, so the frontend can call the backend using relative `/api/...` URLs.
+
+## Useful URLs
+
+- Web app: `http://localhost:5174`
+- API base URL: `http://localhost:3000/api`
+- Adminer: `http://localhost:8090`
+
+Adminer connection values:
+
+```text
+System: PostgreSQL
+Server: postgres
+Username: admin
+Password: admin12345
+Database: task_manager
+```
+
+## API Overview
+
+The client uses these backend route groups:
 
 ### Auth
+
 - `POST /api/auth/signup`
 - `POST /api/auth/login`
-- `GET /api/auth/me`
 
-### Tasks (Protected)
-- `POST /api/tasks`
+### Users
+
+- `GET /api/users/me`
+- `PATCH /api/users/me`
+- `DELETE /api/users/me`
+- `PATCH /api/users/me/organization`
+- `GET /api/users/organizations`
+
+### Tasks
+
 - `GET /api/tasks`
+- `POST /api/tasks`
 - `GET /api/tasks/:id`
 - `PATCH /api/tasks/:id`
+- `PATCH /api/tasks/:id/complete`
 - `DELETE /api/tasks/:id`
+- `GET /api/tasks/organization`
+- `POST /api/tasks/organization`
+- `GET /api/tasks/organization/available`
+- `PATCH /api/tasks/organization/:id/take`
+
+Protected routes require an `Authorization: Bearer <token>` header. The frontend stores the token locally after login/signup and sends it automatically.
+
+## Build
+
+Build the backend:
+
+```bash
+cd server
+npm run build
+```
+
+Build the frontend:
+
+```bash
+cd client
+npm run build
+```
+
+## Database Notes
+
+PostgreSQL credentials are initialized the first time Docker creates the `postgres_data` volume. If you later change `POSTGRES_USER` or `POSTGRES_PASSWORD` in `.env`, the existing database volume will still keep the old credentials.
+
+If local login fails with a password authentication error and you do not need the existing local data, recreate the database volume:
+
+```bash
+docker compose down -v
+docker compose up -d
+```
+
+Then apply the migration again.

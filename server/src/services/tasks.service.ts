@@ -1,6 +1,6 @@
 import { db } from "../db/db";
 import type { Priority, Status } from "../types";
-import { generateTaskID } from "../utils/generators";
+import { v4 as uuidv4 } from "uuid";
 
 type TaskSortBy = "created_at" | "due_date";
 type SortOrder = "asc" | "desc";
@@ -64,12 +64,7 @@ export async function createTask(
     if (!userId)
         throw Error ("Invalid User!")
 
-    const taskCount = await db
-        .selectFrom("Tasks")
-        .select((eb) => eb.fn.countAll().as("count"))
-        .executeTakeFirst();
-
-    const taskId = generateTaskID(userId, Number(taskCount?.count ?? 0) + 1)
+    const taskId = uuidv4();
     const normalizedTitle = title.trim() || ("Task_" + taskId);
 
     const task = await db
@@ -113,13 +108,7 @@ export async function createOrganizationTask(
     if (role !== "organization")
         throw Error ("Only organizations can post organization tasks!");
 
-    const taskCount = await db
-        .selectFrom("Tasks")
-        .select((eb) => eb.fn.countAll().as("count"))
-        .where("organization_id", "=", organizationId)
-        .executeTakeFirst();
-
-    const taskId = generateTaskID(organizationId, Number(taskCount?.count ?? 0) + 1);
+    const taskId = uuidv4();
     const normalizedTitle = title.trim() || ("Task_" + taskId);
 
     const task = await db

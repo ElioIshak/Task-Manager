@@ -2,10 +2,11 @@ import { db } from '../db/db';
 import { hashPassword, verifyPassword } from "../utils/password";
 import type { Role, UserJWT } from "../types";
 import { generateUserID } from "../utils/generators";
+import config from "../config";
 
 import { SignJWT } from 'jose';
 
-const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET);
+const JWT_SECRET = new TextEncoder().encode(config.JWT_SECRET);
 
 // create token function
 async function createToken(user: UserJWT) {

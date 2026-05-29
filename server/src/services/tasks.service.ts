@@ -355,5 +355,25 @@ export async function deleteTask(userId: string, taskId: string) {
 
 // mark completed function
 export async function markTaskAsCompleted(userId: string, taskId: string) {
-    return updateTask(userId, taskId, { status: "COMPLETED" });
+    if (!userId)
+        throw Error ("Invalid User!");
+
+    if (!taskId)
+        throw Error ("Invalid Task!");
+
+    const task = await db
+        .updateTable("Tasks")
+        .set({ status: "COMPLETED" })
+        .where("id", "=", taskId)
+        .where((eb) => eb.or([
+            eb("user_id", "=", userId),
+            eb("assigned_to", "=", userId)
+        ]))
+        .returningAll()
+        .executeTakeFirst();
+
+    if (!task)
+        throw Error ("Task not found!");
+
+    return task;
 };

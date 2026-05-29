@@ -3,6 +3,7 @@ import {
     createUserController,
     deleteOwnAccountController,
     getCurrentUserProfileController,
+    listOrganizationsController,
     updateOwnProfileController,
     updateUserOrganizationController
 } from "../controllers/users.controller";
@@ -11,6 +12,7 @@ import { requireAuth } from "../middleware/auth.middleware";
 const router = Router();
 
 router.post("/", createUserController);
+router.get("/organizations", listOrganizationsController);
 
 router.get("/me", requireAuth, getCurrentUserProfileController);
 router.patch("/me", requireAuth, updateOwnProfileController);

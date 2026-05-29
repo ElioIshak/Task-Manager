@@ -4,6 +4,7 @@ import {
     createUser,
     deleteOwnAccount,
     getCurrentUserProfile,
+    listOrganizations,
     updateOwnProfile,
     updateUserOrganization,
     type CreateUserInput,
@@ -69,6 +70,18 @@ export async function getCurrentUserProfileController(req: Request, res: Respons
     }
     catch (error) {
         sendControllerError(res, error, "Failed to get user profile!");
+    }
+};
+
+// list organizations controller
+export async function listOrganizationsController(_req: Request, res: Response) {
+    try {
+        const organizations = await listOrganizations();
+
+        res.status(200).json(organizations);
+    }
+    catch (error) {
+        sendControllerError(res, error, "Failed to get organizations!");
     }
 };
 

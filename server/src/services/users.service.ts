@@ -133,6 +133,19 @@ export async function getCurrentUserProfile(userId: string) {
     };
 }
 
+// list organization function
+export async function listOrganizations() {
+    return db
+        .selectFrom("Organizations")
+        .innerJoin("Users", "Users.id", "Organizations.user_id")
+        .select([
+            "Organizations.user_id as id",
+            "Users.name as name"
+        ])
+        .orderBy("Users.name", "asc")
+        .execute();
+}
+
 // update profile function
 export async function updateOwnProfile(userId: string, updates: UpdateUserProfileInput) {
     if (!userId)

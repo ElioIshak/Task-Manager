@@ -1,7 +1,11 @@
-import { UserJWT } from './types';
+import type { UserJWT } from "./types";
 
-declare namespace Express {
-  interface Request {
-    userJWT?: UserJWT;
-  }
+declare global {
+    namespace Express {
+        interface Request {
+            userJWT?: UserJWT;
+        }
+    }
 }
+
+export {};

@@ -56,6 +56,61 @@ async function assertOrganizationExists(organizationId: string) {
         throw Error ("Organization not found!");
 }
 
+// create user function
+export async function createUser(input: CreateUserInput) {
+    if (!input.email || !input.firstName || !input.lastName || !input.password || !input.confirmationPass)
+        throw Error ("All fields must be filled!");
+
+    if (input.password !== input.confirmationPass)
+        throw Error ("The passwords must match!");
+
+    if (input.role === "student" && input.organizationId)
+        await assertOrganizationExists(input.organizationId);
+
+    const normalizedEmail = normalizeEmail(input.email);
+    const name = buildName(input.firstName, input.lastName);
+
+    const userCount = await db
+        .selectFrom("Users")
+        .select((eb) => eb.fn.countAll().as("count"))
+        .executeTakeFirst();
+
+    const userId = generateUserID(Number(userCount?.count ?? 0) + 1);
+    const hashedPassword = await hashPassword(input.password);
+
+    await db.transaction().execute(async (trx) => {
+        await trx
+            .insertInto("Users")
+            .values({
+                id: userId,
+                name,
+                email: normalizedEmail,
+                hashed_password: hashedPassword,
+                role: input.role
+            })
+            .executeTakeFirstOrThrow();
+
+        if (input.role === "student") {
+            await trx
+                .insertInto("Students")
+                .values({
+                    user_id: userId,
+                    organization_id: input.organizationId ?? null
+                })
+                .execute();
+        }
+
+        if (input.role === "organization") {
+            await trx
+                .insertInto("Organizations")
+                .values({ user_id: userId })
+                .execute();
+        }
+    });
+
+    return getCurrentUserProfile(userId);
+}
+
 // get current user profile function
 export async function getCurrentUserProfile(userId: string) {
     if (!userId)

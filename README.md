@@ -2,7 +2,7 @@
 
 **Author:** Elio Ishak  
 **Project:** Task Manager  
-**Stack:** React, Vite, Node.js, Express, TypeScript, PostgreSQL, Kysely
+**Stack:** React, Node.js, Express, TypeScript, PostgreSQL, Kysely
 
 Task Manager is a full-stack web application for creating, assigning, and tracking personal and organization tasks. The frontend is a React/Vite app, the backend is an Express API, and PostgreSQL runs through Docker.
 
